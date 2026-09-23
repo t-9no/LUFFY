@@ -3,30 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LUFFY - Ticker Overlay</title>
+    <title>LUFFY - Ticker</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
         
-        /* خلفية سوداء دائمة بدون أي شفافية */
+        /* خلفية سوداء دائمة بالكامل */
         body { background-color: #0b0b0d; color: #fff; padding: 20px; display: flex; justify-content: center; }
-        body.overlay-mode { padding: 0; margin: 0; overflow: hidden; background-color: #000 !important; }
+        body.overlay-mode { background-color: #000000 !important; padding: 0; margin: 0; overflow: hidden; }
 
         .container { width: 100%; max-width: 850px; display: flex; flex-direction: column; gap: 15px; }
         .card { background: #141418; border: 1px solid #282832; border-radius: 12px; padding: 15px; }
         .title { color: #facc15; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
 
-        /* شريط الحركة بخلفية سوداء ثابتة */
+        /* شريط الحركة خلفيته سوداء */
         .marquee-box { background: #000000; border: 1px solid #333; border-radius: 8px; height: 60px; overflow: hidden; position: relative; display: flex; align-items: center; width: 100%; }
         body.overlay-mode .marquee-box { border: none; border-radius: 0; height: 100vh; }
         
-        .marquee-track { display: flex; white-space: nowrap; position: absolute; will-change: transform; animation: marquee var(--speed, 35s) linear infinite; }
+        .marquee-track { display: flex; white-space: nowrap; position: absolute; will-change: transform; animation: marquee var(--speed, 30s) linear infinite; }
         .marquee-item { font-size: 22px; font-weight: bold; color: #fff; display: flex; align-items: center; }
         .marquee-item .amount { color: #facc15; margin-right: 8px; }
         .marquee-item .sep { margin: 0 20px; color: #facc15; }
 
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(50%); } }
 
-        /* عناصر التحكم */
+        /* التحكم */
         .url-box { display: flex; gap: 10px; margin-bottom: 15px; }
         .speed-control { display: flex; align-items: center; gap: 15px; background: #0d0d10; padding: 12px 15px; border-radius: 8px; border: 1px solid #222; margin-top: 10px; }
         .speed-control input[type="range"] { accent-color: #facc15; cursor: pointer; flex: 1; }
@@ -46,10 +46,10 @@
     <div class="card">
         <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - رابط البث العام</h2>
         <div class="url-box">
-            <input type="text" id="finalUrl" readonly value="توليد الرابط...">
+            <input type="text" id="finalUrl" readonly value="جاري إنشاء الرابط...">
             <button class="btn-yellow" onclick="copyUrl()">📋 نسخ الرابط العام</button>
         </div>
-        <p style="color:#888; font-size:12px;">ملاحظة: خلفية الشريط سوداء بالكامل وغير شفافة. انسخ هذا الرابط وضعه في برنامج البث أو المتصفح.</p>
+        <p style="color:#888; font-size:12px;">ملاحظة: خلفية الشريط سوداء بالكامل وليست شفافة. استخدم هذا الرابط في TikTok LIVE Studio.</p>
     </div>
 
     <div class="card">
@@ -88,8 +88,8 @@
         let amounts = [];
         
         try {
-            names = JSON.parse(decodeURIComponent(urlParams.get('n') || "[]"));
-            amounts = JSON.parse(decodeURIComponent(urlParams.get('a') || "[]"));
+            names = JSON.parse(urlParams.get('n') || "[]");
+            amounts = JSON.parse(urlParams.get('a') || "[]");
         } catch(e) {
             console.error(e);
         }
@@ -141,12 +141,11 @@
         const p = new URLSearchParams();
         p.set('mode', 'overlay');
         p.set('sp', val);
-        p.set('n', encodeURIComponent(JSON.stringify(names)));
-        p.set('a', encodeURIComponent(JSON.stringify(amounts)));
+        p.set('n', JSON.stringify(names));
+        p.set('a', JSON.stringify(amounts));
 
         const baseUrl = window.location.href.split('?')[0];
-        const fullUrl = baseUrl + '?' + p.toString();
-        document.getElementById('finalUrl').value = fullUrl;
+        document.getElementById('finalUrl').value = baseUrl + '?' + p.toString();
     }
 
     function render(names, amounts, id) {
@@ -159,7 +158,7 @@
         }
         const el = document.getElementById(id);
         if (el) {
-            const content = items.length ? items.join('') : '<div class="marquee-item">LUFFY Ticker <span class="sep">•</span></div>';
+            const content = items.length ? items.join('') : '<div class="marquee-item">LUFFY - أدخل الأسماء والمبالغ <span class="sep">•</span></div>';
             el.innerHTML = content + content + content + content;
         }
     }
