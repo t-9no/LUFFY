@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUFFY - Ticker Overlay</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
+        
+        body.overlay-mode { background: transparent !important; padding: 0; margin: 0; overflow: hidden; }
+        body { background-color: #0b0b0d; color: #fff; padding: 20px; display: flex; justify-content: center; }
+
+        .container { width: 100%; max-width: 850px; display: flex; flex-direction: column; gap: 15px; }
+        .card { background: #141418; border: 1px solid #282832; border-radius: 12px; padding: 15px; }
+        .title { color: #facc15; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
+
+        /* شريط الحركة */
+        .marquee-box { background: rgba(0,0,0,0.85); border: 1px solid #333; border-radius: 8px; height: 60px; overflow: hidden; position: relative; display: flex; align-items: center; width: 100%; }
+        body.overlay-mode .marquee-box { background: transparent; border: none; height: 100vh; }
+        
+        .marquee-track { display: flex; white-space: nowrap; position: absolute; will-change: transform; animation: marquee var(--speed, 25s) linear infinite; }
+        .marquee-item { font-size: 22px; font-weight: bold; color: #fff; display: flex; align-items: center; }
+        .marquee-item .amount { color: #facc15; margin-right: 8px; }
+        .marquee-item .sep { margin: 0 20px; color: #facc15; }
+
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(50%); } }
+
+        /* التحكم بالسرعة */
+        .speed-control { display: flex; align-items: center; gap: 15px; background: #0d0d10; padding: 10px 15px; border-radius: 8px; border: 1px solid #222; margin-top: 10px; }
+        .speed-control input[type="range"] { accent-color: #facc15; cursor: pointer; flex: 1; }
+
+        /* الخانات الـ 10 */
+        .slots-grid { display: flex; flex-direction: column; gap: 8px; }
+        .slot-row { display: grid; grid-template-columns: 40px 1fr 1fr; gap: 10px; background: #0d0d10; padding: 6px 10px; border-radius: 6px; border: 1px solid #222; }
+        input[type="text"], input[type="number"] { background: #16161c; border: 1px solid #2a2a36; border-radius: 6px; padding: 8px; color: #fff; outline: none; width: 100%; }
+        input:focus { border-color: #facc15; }
+        
+        .btn-yellow { background: #facc15; color: #000; border: none; border-radius: 6px; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+        .btn-yellow:hover { background: #eab308; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="dashContainer">
+    <div style="display:flex; justify-content:space-between; align-items:center;" class="card">
+        <h2 style="color:#facc15;">LUFFY - شريط البث</h2>
+        <button class="btn-yellow" onclick="saveData()">💾 حفظ التغييرات والسرعة</button>
+    </div>
+
+    <div class="card">
+        <div class="title">👁️ المعاينة الحية والسرعة</div>
+        <div class="marquee-box">
+            <div class="marquee-track" id="track"></div>
+        </div>
+
+        <!-- خيار تحديد السرعة -->
+        <div class="speed-control">
+            <label style="color:#facc15; font-weight:bold;">⚡ سرعة الشريط:</label>
+            <input type="range" id="speedRange" min="1" max="10" value="3" oninput="changeSpeed(this.value)">
+            <span id="speedValue" style="color:#fff; font-weight:bold; min-width:60px;">3 (بطيء)</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="title">📝 10 خانات (اسم + المبلغ IQD)</div>
+        <div class="slots-grid" id="slots"></div>
+    </div>
+</div>
+
+<script>
+    const isOverlay = new URLSearchParams(window.location.search).get('mode') === 'overlay';
+
+    if (isOverlay) {
+        document.body.classList.add('overlay-mode');
+        document.getElementById('dashContainer').style.display = 'none';
+        const box = document.createElement('div');
+        box.className = 'marquee-box';
+        box.innerHTML = '<div class="marquee-track" id="trackOverlay"></div>';
+        document.body.appendChild(box);
+        loadData();
+    } else {
+        init();
+    }
+
+    function init() {
+        const slots = document.getElementById('slots');
+        const saved = JSON.parse(localStorage.getItem('luffy_data')) || {};
+        const savedSlots = saved.slots || [];
+        const savedSpeed = saved.speed || 3;
+
+        // ضبط محدد السرعة الأولية
+        document.getElementById('speedRange').value = savedSpeed;
+        changeSpeed(savedSpeed);
+        
+        for (let i = 0; i < 10; i++) {
+            const name = savedSlots[i] ? savedSlots[i].name : '';
+            const amount = savedSlots[i] ? savedSlots[i].amount : '';
+            slots.innerHTML += `
+                <div class="slot-row">
+                    <div style="color:#888; text-align:center; line-height:35px;">#${i+1}</div>
+                    <input type="text" placeholder="الاسم" class="s-name" value="${name}" oninput="update()">
+                    <input type="number" placeholder="المبلغ د.ع" class="s-amount" value="${amount}" oninput="update()">
+                </div>
+            `;
+        }
+        update();
+    }
+
+    function changeSpeed(val) {
+        // تحويل القيمة من 1-10 إلى ثوانٍ للأنيميشن (قيمة أكبر = وقت أطول = سرعة أبطأ)
+        // 1 = 45 ثانية (بطيء جداً) ، 10 = 8 ثواني (سريع جداً)
+        const seconds = 50 - (val * 4);
+        document.documentElement.style.setProperty('--speed', `${seconds}s`);
+
+        let speedText = "";
+        if (val <= 2) speedText = `${val} (بطيء جداً)`;
+        else if (val <= 5) speedText = `${val} (متوسط/هادئ)`;
+        else if (val <= 8) speedText = `${val} (سريع)`;
+        else speedText = `${val} (سريع جداً)`;
+
+        const txt = document.getElementById('speedValue');
+        if (txt) txt.innerText = speedText;
+    }
+
+    function update() {
+        const names = Array.from(document.querySelectorAll('.s-name')).map(i => i.value.trim());
+        const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
+        render(names, amounts, 'track');
+    }
+
+    function render(names, amounts, id) {
+        let items = [];
+        for (let i = 0; i < 10; i++) {
+            if (names[i]) {
+                const amt = amounts[i] ? `${Number(amounts[i]).toLocaleString('ar-IQ')} د.ع` : '';
+                items.push(`<div class="marquee-item"><span>${names[i]}</span>${amt ? `<span class="amount">(${amt})</span>` : ''}<span class="sep">•</span></div>`);
+            }
+        }
+        const el = document.getElementById(id);
+        if (el) {
+            const content = items.length ? items.join('') : '<div class="marquee-item">LUFFY Ticker <span class="sep">•</span></div>';
+            el.innerHTML = content + content + content + content;
+        }
+    }
+
+    function saveData() {
+        const names = Array.from(document.querySelectorAll('.s-name')).map(i => i.value.trim());
+        const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
+        const speedVal = document.getElementById('speedRange').value;
+
+        let slotsData = [];
+        for(let i=0; i<10; i++) slotsData.push({ name: names[i], amount: amounts[i] });
+
+        const fullData = {
+            slots: slotsData,
+            speed: speedVal
+        };
+
+        localStorage.setItem('luffy_data', JSON.stringify(fullData));
+        alert('تم حفظ البيانات والسرعة بنجاح!');
+    }
+
+    function loadData() {
+        const saved = JSON.parse(localStorage.getItem('luffy_data')) || {};
+        const savedSlots = saved.slots || [];
+        const savedSpeed = saved.speed || 3;
+
+        changeSpeed(savedSpeed);
+        render(savedSlots.map(s => s.name), savedSlots.map(s => s.amount), 'trackOverlay');
+    }
+</script>
+</body>
+</html>
