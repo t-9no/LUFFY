@@ -7,16 +7,17 @@
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
         
-        body.overlay-mode { background: transparent !important; padding: 0; margin: 0; overflow: hidden; }
+        /* خلفية سوداء دائمة بدون أي شفافية */
         body { background-color: #0b0b0d; color: #fff; padding: 20px; display: flex; justify-content: center; }
+        body.overlay-mode { padding: 0; margin: 0; overflow: hidden; background-color: #000 !important; }
 
         .container { width: 100%; max-width: 850px; display: flex; flex-direction: column; gap: 15px; }
         .card { background: #141418; border: 1px solid #282832; border-radius: 12px; padding: 15px; }
         .title { color: #facc15; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
 
-        /* شريط الحركة */
-        .marquee-box { background: rgba(0,0,0,0.85); border: 1px solid #333; border-radius: 8px; height: 60px; overflow: hidden; position: relative; display: flex; align-items: center; width: 100%; }
-        body.overlay-mode .marquee-box { background: transparent; border: none; height: 100vh; }
+        /* شريط الحركة بخلفية سوداء ثابتة */
+        .marquee-box { background: #000000; border: 1px solid #333; border-radius: 8px; height: 60px; overflow: hidden; position: relative; display: flex; align-items: center; width: 100%; }
+        body.overlay-mode .marquee-box { border: none; border-radius: 0; height: 100vh; }
         
         .marquee-track { display: flex; white-space: nowrap; position: absolute; will-change: transform; animation: marquee var(--speed, 35s) linear infinite; }
         .marquee-item { font-size: 22px; font-weight: bold; color: #fff; display: flex; align-items: center; }
@@ -48,7 +49,7 @@
             <input type="text" id="finalUrl" readonly value="توليد الرابط...">
             <button class="btn-yellow" onclick="copyUrl()">📋 نسخ الرابط العام</button>
         </div>
-        <p style="color:#888; font-size:12px;">تنبيه: انسخ هذا الرابط وضعه في برنامج البث ليقرأ السرعة والأسماء مباشرة عبر النت.</p>
+        <p style="color:#888; font-size:12px;">ملاحظة: خلفية الشريط سوداء بالكامل وغير شفافة. انسخ هذا الرابط وضعه في برنامج البث أو المتصفح.</p>
     </div>
 
     <div class="card">
@@ -82,10 +83,16 @@
         box.innerHTML = '<div class="marquee-track" id="trackOverlay"></div>';
         document.body.appendChild(box);
         
-        // قراءة السرعة والأسماء والبيانات المباشرة من الرابط الشامل
         const speed = urlParams.get('sp') || 2;
-        const names = JSON.parse(decodeURIComponent(urlParams.get('n') || "[]"));
-        const amounts = JSON.parse(decodeURIComponent(urlParams.get('a') || "[]"));
+        let names = [];
+        let amounts = [];
+        
+        try {
+            names = JSON.parse(decodeURIComponent(urlParams.get('n') || "[]"));
+            amounts = JSON.parse(decodeURIComponent(urlParams.get('a') || "[]"));
+        } catch(e) {
+            console.error(e);
+        }
 
         applySpeed(speed);
         render(names, amounts, 'trackOverlay');
@@ -131,7 +138,6 @@
 
         render(names, amounts, 'track');
 
-        // بناء الرابط الشامل مع التشفير الآمن للمشرق العربي
         const p = new URLSearchParams();
         p.set('mode', 'overlay');
         p.set('sp', val);
@@ -162,7 +168,7 @@
         const urlInput = document.getElementById('finalUrl');
         urlInput.select();
         navigator.clipboard.writeText(urlInput.value);
-        alert('تم نسخ الرابط العام الشامل بنجاح!');
+        alert('تم نسخ الرابط بنجاح!');
     }
 </script>
 </body>
