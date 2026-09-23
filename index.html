@@ -15,7 +15,7 @@
         .card { background: #141418; border: 1px solid #282832; border-radius: 12px; padding: 15px; }
         .title { color: #facc15; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
 
-        /* شريط الحركة خلفيته سوداء */
+        /* شريط الحركة */
         .marquee-box { background: #000000; border: 1px solid #333; border-radius: 8px; height: 60px; overflow: hidden; position: relative; display: flex; align-items: center; width: 100%; }
         body.overlay-mode .marquee-box { border: none; border-radius: 0; height: 100vh; }
         
@@ -26,8 +26,9 @@
 
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(50%); } }
 
-        /* التحكم */
-        .url-box { display: flex; gap: 10px; margin-bottom: 15px; }
+        /* عناصر التحكم والأزرار */
+        .url-box { display: flex; gap: 10px; margin-bottom: 10px; }
+        .actions-box { display: flex; gap: 10px; margin-top: 15px; }
         .speed-control { display: flex; align-items: center; gap: 15px; background: #0d0d10; padding: 12px 15px; border-radius: 8px; border: 1px solid #222; margin-top: 10px; }
         .speed-control input[type="range"] { accent-color: #facc15; cursor: pointer; flex: 1; }
 
@@ -38,18 +39,20 @@
 
         .btn-yellow { background: #facc15; color: #000; border: none; border-radius: 6px; padding: 10px 20px; font-weight: bold; cursor: pointer; white-space: nowrap; }
         .btn-yellow:hover { background: #eab308; }
+        .btn-green { background: #22c55e; color: #000; border: none; border-radius: 6px; padding: 12px 20px; font-weight: bold; cursor: pointer; flex: 1; text-align: center; font-size: 15px; }
+        .btn-green:hover { background: #16a34a; }
     </style>
 </head>
 <body>
 
 <div class="container" id="dashContainer">
     <div class="card">
-        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - رابط البث العام</h2>
+        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - لوحة التحكم الشاملة</h2>
         <div class="url-box">
             <input type="text" id="finalUrl" readonly value="جاري إنشاء الرابط...">
             <button class="btn-yellow" onclick="copyUrl()">📋 نسخ الرابط العام</button>
         </div>
-        <p style="color:#888; font-size:12px;">ملاحظة: خلفية الشريط سوداء بالكامل وليست شفافة. استخدم هذا الرابط في TikTok LIVE Studio.</p>
+        <p style="color:#888; font-size:12px;">انسخ هذا الرابط العام وضعه في TikTok LIVE Studio ليعرض نفس الأسماء المحفوظة مباشرة.</p>
     </div>
 
     <div class="card">
@@ -68,6 +71,10 @@
     <div class="card">
         <div class="title">📝 10 خانات (اسم + المبلغ IQD)</div>
         <div class="slots-grid" id="slots"></div>
+        
+        <div class="actions-box">
+            <button class="btn-green" onclick="saveData()">💾 حفظ التغييرات واستمرار الأسماء</button>
+        </div>
     </div>
 </div>
 
@@ -102,15 +109,20 @@
 
     function init() {
         const slots = document.getElementById('slots');
-        const defaultNames = ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
-        const defaultAmounts = ["50000", "25000", "10000"];
+        
+        // استرجاع البيانات المحفوظة سابقاً إن وجدت
+        const savedNames = JSON.parse(localStorage.getItem('luffy_names')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
+        const savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts')) || ["50000", "25000", "10000"];
+        const savedSpeed = localStorage.getItem('luffy_speed') || 2;
+
+        document.getElementById('speedRange').value = savedSpeed;
 
         for (let i = 0; i < 10; i++) {
             slots.innerHTML += `
                 <div class="slot-row">
                     <div style="color:#888; text-align:center; line-height:35px;">#${i+1}</div>
-                    <input type="text" placeholder="الاسم" class="s-name" value="${defaultNames[i] || ''}" oninput="updateAll()">
-                    <input type="number" placeholder="المبلغ د.ع" class="s-amount" value="${defaultAmounts[i] || ''}" oninput="updateAll()">
+                    <input type="text" placeholder="الاسم" class="s-name" value="${savedNames[i] || ''}" oninput="updateAll()">
+                    <input type="number" placeholder="المبلغ د.ع" class="s-amount" value="${savedAmounts[i] || ''}" oninput="updateAll()">
                 </div>
             `;
         }
@@ -148,6 +160,19 @@
         document.getElementById('finalUrl').value = baseUrl + '?' + p.toString();
     }
 
+    function saveData() {
+        const val = document.getElementById('speedRange').value;
+        const names = Array.from(document.querySelectorAll('.s-name')).map(i => i.value.trim());
+        const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
+
+        // حفظ البيانات في متصفحك بشكل دائم
+        localStorage.setItem('luffy_names', JSON.stringify(names));
+        localStorage.setItem('luffy_amounts', JSON.stringify(amounts));
+        localStorage.setItem('luffy_speed', val);
+
+        alert('✅ تم حفظ التغييرات والأسماء بنجاح! ستظهر هذه الأسماء دائماً عند فتح الموقع.');
+    }
+
     function render(names, amounts, id) {
         let items = [];
         for (let i = 0; i < 10; i++) {
@@ -167,7 +192,7 @@
         const urlInput = document.getElementById('finalUrl');
         urlInput.select();
         navigator.clipboard.writeText(urlInput.value);
-        alert('تم نسخ الرابط بنجاح!');
+        alert('تم نسخ الرابط العام بنجاح!');
     }
 </script>
 </body>
