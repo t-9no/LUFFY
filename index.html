@@ -7,7 +7,6 @@
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
         
-        /* خلفية سوداء دائمة بالكامل */
         body { background-color: #0b0b0d; color: #fff; padding: 20px; display: flex; justify-content: center; }
         body.overlay-mode { background-color: #000000 !important; padding: 0; margin: 0; overflow: hidden; }
 
@@ -15,7 +14,6 @@
         .card { background: #141418; border: 1px solid #282832; border-radius: 12px; padding: 15px; }
         .title { color: #facc15; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
 
-        /* شريط الحركة */
         .marquee-box { background: #000000; border: 1px solid #333; border-radius: 8px; height: 60px; overflow: hidden; position: relative; display: flex; align-items: center; width: 100%; }
         body.overlay-mode .marquee-box { border: none; border-radius: 0; height: 100vh; }
         
@@ -26,7 +24,6 @@
 
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(50%); } }
 
-        /* عناصر التحكم والأزرار */
         .url-box { display: flex; gap: 10px; margin-bottom: 10px; }
         .actions-box { display: flex; gap: 10px; margin-top: 15px; }
         .speed-control { display: flex; align-items: center; gap: 15px; background: #0d0d10; padding: 12px 15px; border-radius: 8px; border: 1px solid #222; margin-top: 10px; }
@@ -52,7 +49,7 @@
             <input type="text" id="finalUrl" readonly value="جاري إنشاء الرابط...">
             <button class="btn-yellow" onclick="copyUrl()">📋 نسخ الرابط العام</button>
         </div>
-        <p style="color:#888; font-size:12px;">انسخ هذا الرابط العام وضعه في TikTok LIVE Studio ليعرض نفس الأسماء والمبالغ بالعملات المحددة.</p>
+        <p style="color:#888; font-size:12px;">عند الضغط على حفظ، سيتم نسخ الرابط الجديد فوراً لتقوم بلصقه مباشرة في برنامج البث.</p>
     </div>
 
     <div class="card">
@@ -73,7 +70,7 @@
         <div class="slots-grid" id="slots"></div>
         
         <div class="actions-box">
-            <button class="btn-green" onclick="saveData()">💾 حفظ التغييرات واستمرار الأسماء والعملات</button>
+            <button class="btn-green" onclick="saveData()">💾 حفظ التغييرات ونسخ الرابط المحدث تلقائياً</button>
         </div>
     </div>
 </div>
@@ -112,7 +109,6 @@
     function init() {
         const slots = document.getElementById('slots');
         
-        // استرجاع البيانات المحفوظة سابقاً إن وجدت
         const savedNames = JSON.parse(localStorage.getItem('luffy_names_mix')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
         const savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_mix')) || ["50000", "100", "25000"];
         const savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_mix')) || ["IQD", "USD", "IQD"];
@@ -165,12 +161,15 @@
         p.set('n', JSON.stringify(names));
         p.set('a', JSON.stringify(amounts));
         p.set('c', JSON.stringify(currencies));
+        p.set('v', Date.now()); // منع التخزين المؤقت الكاش
 
         const baseUrl = window.location.href.split('?')[0];
         document.getElementById('finalUrl').value = baseUrl + '?' + p.toString();
     }
 
     function saveData() {
+        updateAll();
+
         const val = document.getElementById('speedRange').value;
         const names = Array.from(document.querySelectorAll('.s-name')).map(i => i.value.trim());
         const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
@@ -181,7 +180,7 @@
         localStorage.setItem('luffy_currencies_mix', JSON.stringify(currencies));
         localStorage.setItem('luffy_speed_mix', val);
 
-        alert('✅ تم حفظ التغييرات والأسماء والعملات بنجاح! ستظهر دائماً عند فتح الرابط.');
+        copyUrl();
     }
 
     function render(names, amounts, currencies, id) {
@@ -211,7 +210,7 @@
         const urlInput = document.getElementById('finalUrl');
         urlInput.select();
         navigator.clipboard.writeText(urlInput.value);
-        alert('تم نسخ الرابط العام بنجاح!');
+        alert('✅ تم حفظ البيانات ونسخ الرابط الجديد المحدث تلقائياً!\n\nاذهب إلى TikTok LIVE Studio والصق الرابط الجديد مكان القديم وسيعمل فوراً.');
     }
 </script>
 </body>
