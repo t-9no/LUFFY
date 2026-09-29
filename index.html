@@ -3,30 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LUFFY - Ticker</title>
+    <title>LUFFY - Ticker Overlay</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
         
         body { background-color: #0b0b0d; color: #fff; padding: 20px; display: flex; justify-content: center; }
         body.overlay-mode { background-color: #000000 !important; padding: 0; margin: 0; overflow: hidden; }
 
-        .container { width: 100%; max-width: 850px; display: flex; flex-direction: column; gap: 15px; }
+        .container { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 15px; }
         .card { background: #141418; border: 1px solid #282832; border-radius: 12px; padding: 15px; }
         .title { color: #facc15; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
 
-        .marquee-box { background: #000000; border: 1px solid #333; border-radius: 8px; height: 60px; overflow: hidden; position: relative; display: flex; align-items: center; width: 100%; }
-        body.overlay-mode .marquee-box { border: none; border-radius: 0; height: 100vh; }
+        /* شريط الحركة الرئيسي */
+        .marquee-box { 
+            background: #000000; 
+            border: 2px solid var(--border-color, #333333); 
+            border-radius: 8px; 
+            height: 60px; 
+            overflow: hidden; 
+            position: relative; 
+            display: flex; 
+            align-items: center; 
+            width: 100%; 
+            transition: border-color 0.3s;
+        }
+        body.overlay-mode .marquee-box { border-radius: 0; height: 100vh; }
         
         .marquee-track { display: flex; white-space: nowrap; position: absolute; will-change: transform; animation: marquee var(--speed, 30s) linear infinite; }
-        .marquee-item { font-size: 22px; font-weight: bold; color: #fff; display: flex; align-items: center; }
-        .marquee-item .amount { color: #facc15; margin-right: 8px; }
-        .marquee-item .sep { margin: 0 20px; color: #facc15; }
+        
+        .marquee-item { font-size: 22px; font-weight: bold; display: flex; align-items: center; }
+        .marquee-item .name { color: var(--name-color, #ffffff); }
+        .marquee-item .amount { color: var(--num-color, #facc15); margin-right: 8px; }
+        .marquee-item .sep { margin: 0 20px; color: var(--border-color, #facc15); }
 
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(50%); } }
 
+        /* عناصر التحكم */
         .url-box { display: flex; gap: 10px; margin-bottom: 10px; }
         .actions-box { display: flex; gap: 10px; margin-top: 15px; }
-        .speed-control { display: flex; align-items: center; gap: 15px; background: #0d0d10; padding: 12px 15px; border-radius: 8px; border: 1px solid #222; margin-top: 10px; }
+        
+        .control-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: #0d0d10; padding: 12px 15px; border-radius: 8px; border: 1px solid #222; margin-top: 10px; }
+        .color-picker-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; color: #ccc; }
+        input[type="color"] { border: none; width: 32px; height: 32px; border-radius: 5px; cursor: pointer; background: transparent; }
+
+        .speed-control { display: flex; align-items: center; gap: 15px; grid-column: 1 / -1; }
         .speed-control input[type="range"] { accent-color: #facc15; cursor: pointer; flex: 1; }
 
         .slots-grid { display: flex; flex-direction: column; gap: 8px; }
@@ -44,33 +64,48 @@
 
 <div class="container" id="dashContainer">
     <div class="card">
-        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - لوحة التحكم الشاملة (IQD / $)</h2>
+        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - لوحة التحكم الشاملة</h2>
         <div class="url-box">
             <input type="text" id="finalUrl" readonly value="جاري إنشاء الرابط...">
             <button class="btn-yellow" onclick="copyUrl()">📋 نسخ الرابط العام</button>
         </div>
-        <p style="color:#888; font-size:12px;">عند الضغط على حفظ، سيتم نسخ الرابط الجديد فوراً لتقوم بلصقه مباشرة في برنامج البث.</p>
+        <p style="color:#888; font-size:12px;">عند الحفظ، يُنسخ الرابط المحدث تلقائياً لتلصقه مباشرة في TikTok LIVE Studio.</p>
     </div>
 
     <div class="card">
-        <div class="title">👁️ المعاينة الحية والسرعة</div>
-        <div class="marquee-box">
+        <div class="title">👁️ المعاينة الحية والألوان</div>
+        <div class="marquee-box" id="previewBox">
             <div class="marquee-track" id="track"></div>
         </div>
 
-        <div class="speed-control">
-            <label style="color:#facc15; font-weight:bold;">⚡ السرعة:</label>
-            <input type="range" id="speedRange" min="1" max="10" value="2" oninput="updateAll()">
-            <span id="speedValue" style="color:#fff; font-weight:bold; min-width:90px;">بطيء جداً</span>
+        <div class="control-panel">
+            <div class="color-picker-item">
+                <label>🎨 لون الأسماء:</label>
+                <input type="color" id="cName" value="#ffffff" oninput="updateAll()">
+            </div>
+            <div class="color-picker-item">
+                <label>💰 لون الرقم/المبلغ:</label>
+                <input type="color" id="cNum" value="#facc15" oninput="updateAll()">
+            </div>
+            <div class="color-picker-item">
+                <label>🖼️ لون الإطار/الفواصل:</label>
+                <input type="color" id="cBorder" value="#333333" oninput="updateAll()">
+            </div>
+
+            <div class="speed-control">
+                <label style="color:#facc15; font-weight:bold;">⚡ السرعة:</label>
+                <input type="range" id="speedRange" min="1" max="10" value="2" oninput="updateAll()">
+                <span id="speedValue" style="color:#fff; font-weight:bold; min-width:90px;">بطيء جداً</span>
+            </div>
         </div>
     </div>
 
     <div class="card">
-        <div class="title">📝 10 خانات (اسم + مبلغ + اختيار العملة)</div>
+        <div class="title">📝 10 خانات (اسم + مبلغ + عملة)</div>
         <div class="slots-grid" id="slots"></div>
         
         <div class="actions-box">
-            <button class="btn-green" onclick="saveData()">💾 حفظ التغييرات ونسخ الرابط المحدث تلقائياً</button>
+            <button class="btn-green" onclick="saveData()">💾 حفظ التغييرات ونسخ الرابط تلقائياً</button>
         </div>
     </div>
 </div>
@@ -84,23 +119,25 @@
         document.getElementById('dashContainer').style.display = 'none';
         const box = document.createElement('div');
         box.className = 'marquee-box';
+        box.id = 'previewBoxOverlay';
         box.innerHTML = '<div class="marquee-track" id="trackOverlay"></div>';
         document.body.appendChild(box);
         
         const speed = urlParams.get('sp') || 2;
-        let names = [];
-        let amounts = [];
-        let currencies = [];
-        
+        const cName = urlParams.get('cn') || '#ffffff';
+        const cNum = urlParams.get('cm') || '#facc15';
+        const cBorder = urlParams.get('cb') || '#333333';
+
+        applyColors(cName, cNum, cBorder);
+        applySpeed(speed);
+
+        let names = [], amounts = [], currencies = [];
         try {
             names = JSON.parse(urlParams.get('n') || "[]");
             amounts = JSON.parse(urlParams.get('a') || "[]");
             currencies = JSON.parse(urlParams.get('c') || "[]");
-        } catch(e) {
-            console.error(e);
-        }
+        } catch(e) { console.error(e); }
 
-        applySpeed(speed);
         render(names, amounts, currencies, 'trackOverlay');
     } else {
         init();
@@ -109,11 +146,14 @@
     function init() {
         const slots = document.getElementById('slots');
         
-        const savedNames = JSON.parse(localStorage.getItem('luffy_names_mix')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
-        const savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_mix')) || ["50000", "100", "25000"];
-        const savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_mix')) || ["IQD", "USD", "IQD"];
-        const savedSpeed = localStorage.getItem('luffy_speed_mix') || 2;
-
+        const savedNames = JSON.parse(localStorage.getItem('luffy_names_v2')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
+        const savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_v2')) || ["50000", "100", "25000"];
+        const savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_v2')) || ["IQD", "USD", "IQD"];
+        const savedSpeed = localStorage.getItem('luffy_speed_v2') || 2;
+        
+        document.getElementById('cName').value = localStorage.getItem('luffy_cn') || '#ffffff';
+        document.getElementById('cNum').value = localStorage.getItem('luffy_cm') || '#facc15';
+        document.getElementById('cBorder').value = localStorage.getItem('luffy_cb') || '#333333';
         document.getElementById('speedRange').value = savedSpeed;
 
         for (let i = 0; i < 10; i++) {
@@ -145,9 +185,20 @@
         }
     }
 
+    function applyColors(cn, cm, cb) {
+        document.documentElement.style.setProperty('--name-color', cn);
+        document.documentElement.style.setProperty('--num-color', cm);
+        document.documentElement.style.setProperty('--border-color', cb);
+    }
+
     function updateAll() {
         const val = document.getElementById('speedRange').value;
+        const cn = document.getElementById('cName').value;
+        const cm = document.getElementById('cNum').value;
+        const cb = document.getElementById('cBorder').value;
+
         applySpeed(val);
+        applyColors(cn, cm, cb);
 
         const names = Array.from(document.querySelectorAll('.s-name')).map(i => i.value.trim());
         const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
@@ -158,10 +209,13 @@
         const p = new URLSearchParams();
         p.set('mode', 'overlay');
         p.set('sp', val);
+        p.set('cn', cn);
+        p.set('cm', cm);
+        p.set('cb', cb);
         p.set('n', JSON.stringify(names));
         p.set('a', JSON.stringify(amounts));
         p.set('c', JSON.stringify(currencies));
-        p.set('v', Date.now()); // منع التخزين المؤقت الكاش
+        p.set('v', Date.now());
 
         const baseUrl = window.location.href.split('?')[0];
         document.getElementById('finalUrl').value = baseUrl + '?' + p.toString();
@@ -171,14 +225,20 @@
         updateAll();
 
         const val = document.getElementById('speedRange').value;
+        const cn = document.getElementById('cName').value;
+        const cm = document.getElementById('cNum').value;
+        const cb = document.getElementById('cBorder').value;
         const names = Array.from(document.querySelectorAll('.s-name')).map(i => i.value.trim());
         const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
         const currencies = Array.from(document.querySelectorAll('.s-currency')).map(i => i.value);
 
-        localStorage.setItem('luffy_names_mix', JSON.stringify(names));
-        localStorage.setItem('luffy_amounts_mix', JSON.stringify(amounts));
-        localStorage.setItem('luffy_currencies_mix', JSON.stringify(currencies));
-        localStorage.setItem('luffy_speed_mix', val);
+        localStorage.setItem('luffy_names_v2', JSON.stringify(names));
+        localStorage.setItem('luffy_amounts_v2', JSON.stringify(amounts));
+        localStorage.setItem('luffy_currencies_v2', JSON.stringify(currencies));
+        localStorage.setItem('luffy_speed_v2', val);
+        localStorage.setItem('luffy_cn', cn);
+        localStorage.setItem('luffy_cm', cm);
+        localStorage.setItem('luffy_cb', cb);
 
         copyUrl();
     }
@@ -190,18 +250,14 @@
                 let amtFormatted = '';
                 if (amounts[i]) {
                     const curr = currencies[i] || 'IQD';
-                    if (curr === 'USD') {
-                        amtFormatted = `$${Number(amounts[i]).toLocaleString('en-US')}`;
-                    } else {
-                        amtFormatted = `${Number(amounts[i]).toLocaleString('ar-IQ')} د.ع`;
-                    }
+                    amtFormatted = curr === 'USD' ? `$${Number(amounts[i]).toLocaleString('en-US')}` : `${Number(amounts[i]).toLocaleString('ar-IQ')} د.ع`;
                 }
-                items.push(`<div class="marquee-item"><span>${names[i]}</span>${amtFormatted ? `<span class="amount">(${amtFormatted})</span>` : ''}<span class="sep">•</span></div>`);
+                items.push(`<div class="marquee-item"><span class="name">${names[i]}</span>${amtFormatted ? `<span class="amount">(${amtFormatted})</span>` : ''}<span class="sep">•</span></div>`);
             }
         }
         const el = document.getElementById(id);
         if (el) {
-            const content = items.length ? items.join('') : '<div class="marquee-item">LUFFY - أدخل الأسماء والمبالغ <span class="sep">•</span></div>';
+            const content = items.length ? items.join('') : '<div class="marquee-item"><span class="name">LUFFY - أدخل الأسماء والمبالغ</span> <span class="sep">•</span></div>';
             el.innerHTML = content + content + content + content;
         }
     }
@@ -210,7 +266,7 @@
         const urlInput = document.getElementById('finalUrl');
         urlInput.select();
         navigator.clipboard.writeText(urlInput.value);
-        alert('✅ تم حفظ البيانات ونسخ الرابط الجديد المحدث تلقائياً!\n\nاذهب إلى TikTok LIVE Studio والصق الرابط الجديد مكان القديم وسيعمل فوراً.');
+        alert('✅ تم حفظ الألوان والأسماء ونسخ الرابط المحدث تلقائياً!\n\nضع الرابط الجديد في TikTok LIVE Studio وتكتمل التغييرات.');
     }
 </script>
 </body>
