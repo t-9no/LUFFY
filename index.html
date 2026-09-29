@@ -33,7 +33,7 @@
         
         .marquee-item { font-size: 22px; font-weight: bold; display: flex; align-items: center; }
         .marquee-item .name { color: var(--name-color, #ffffff); }
-        .marquee-item .amount { color: var(--num-color, #facc15); margin-right: 8px; }
+        .marquee-item .amount { color: var(--num-color, #facc15); margin-right: 8px; direction: ltr; display: inline-block; }
         .marquee-item .sep { margin: 0 20px; color: var(--border-color, #facc15); }
 
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(50%); } }
@@ -69,7 +69,7 @@
             <input type="text" id="finalUrl" readonly value="جاري إنشاء الرابط...">
             <button class="btn-yellow" onclick="copyUrl()">📋 نسخ الرابط العام</button>
         </div>
-        <p style="color:#888; font-size:12px;">عند الحفظ، يُنسخ الرابط المحدث تلقائياً لتلصقه مباشرة في TikTok LIVE Studio.</p>
+        <p style="color:#888; font-size:12px;">تظهر الأرقام دائماً باللغة الإنجليزية (English Numbers Only).</p>
     </div>
 
     <div class="card">
@@ -146,14 +146,14 @@
     function init() {
         const slots = document.getElementById('slots');
         
-        const savedNames = JSON.parse(localStorage.getItem('luffy_names_v2')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
-        const savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_v2')) || ["50000", "100", "25000"];
-        const savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_v2')) || ["IQD", "USD", "IQD"];
-        const savedSpeed = localStorage.getItem('luffy_speed_v2') || 2;
+        const savedNames = JSON.parse(localStorage.getItem('luffy_names_v3')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
+        const savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_v3')) || ["50000", "100", "25000"];
+        const savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_v3')) || ["IQD", "USD", "IQD"];
+        const savedSpeed = localStorage.getItem('luffy_speed_v3') || 2;
         
-        document.getElementById('cName').value = localStorage.getItem('luffy_cn') || '#ffffff';
-        document.getElementById('cNum').value = localStorage.getItem('luffy_cm') || '#facc15';
-        document.getElementById('cBorder').value = localStorage.getItem('luffy_cb') || '#333333';
+        document.getElementById('cName').value = localStorage.getItem('luffy_cn3') || '#ffffff';
+        document.getElementById('cNum').value = localStorage.getItem('luffy_cm3') || '#facc15';
+        document.getElementById('cBorder').value = localStorage.getItem('luffy_cb3') || '#333333';
         document.getElementById('speedRange').value = savedSpeed;
 
         for (let i = 0; i < 10; i++) {
@@ -232,13 +232,13 @@
         const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
         const currencies = Array.from(document.querySelectorAll('.s-currency')).map(i => i.value);
 
-        localStorage.setItem('luffy_names_v2', JSON.stringify(names));
-        localStorage.setItem('luffy_amounts_v2', JSON.stringify(amounts));
-        localStorage.setItem('luffy_currencies_v2', JSON.stringify(currencies));
-        localStorage.setItem('luffy_speed_v2', val);
-        localStorage.setItem('luffy_cn', cn);
-        localStorage.setItem('luffy_cm', cm);
-        localStorage.setItem('luffy_cb', cb);
+        localStorage.setItem('luffy_names_v3', JSON.stringify(names));
+        localStorage.setItem('luffy_amounts_v3', JSON.stringify(amounts));
+        localStorage.setItem('luffy_currencies_v3', JSON.stringify(currencies));
+        localStorage.setItem('luffy_speed_v3', val);
+        localStorage.setItem('luffy_cn3', cn);
+        localStorage.setItem('luffy_cm3', cm);
+        localStorage.setItem('luffy_cb3', cb);
 
         copyUrl();
     }
@@ -250,7 +250,9 @@
                 let amtFormatted = '';
                 if (amounts[i]) {
                     const curr = currencies[i] || 'IQD';
-                    amtFormatted = curr === 'USD' ? `$${Number(amounts[i]).toLocaleString('en-US')}` : `${Number(amounts[i]).toLocaleString('ar-IQ')} د.ع`;
+                    // استخدام en-US دائماً لضمان طباعة الأرقام إنجليزية حصراً
+                    const numEng = Number(amounts[i]).toLocaleString('en-US');
+                    amtFormatted = curr === 'USD' ? `$${numEng}` : `${numEng} د.ع`;
                 }
                 items.push(`<div class="marquee-item"><span class="name">${names[i]}</span>${amtFormatted ? `<span class="amount">(${amtFormatted})</span>` : ''}<span class="sep">•</span></div>`);
             }
@@ -266,7 +268,7 @@
         const urlInput = document.getElementById('finalUrl');
         urlInput.select();
         navigator.clipboard.writeText(urlInput.value);
-        alert('✅ تم حفظ الألوان والأسماء ونسخ الرابط المحدث تلقائياً!\n\nضع الرابط الجديد في TikTok LIVE Studio وتكتمل التغييرات.');
+        alert('✅ تم حفظ التنسيق ونسخ الرابط المحدث تلقائياً!\n\nالأرقام ستظهر الآن باللغة الإنجليزية حصراً.');
     }
 </script>
 </body>
