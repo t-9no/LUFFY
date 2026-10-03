@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LUFFY - Ticker Overlay</title>
+    <title>LUFFY - Ticker Overlay Sync</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body { background-color: #0b0b0d; color: #fff; font-family: var(--font-family, 'Segoe UI', Tahoma, sans-serif); padding: 20px; display: flex; justify-content: center; }
         
-        /* وضع الرابط العام / البث: إخفاء كل شيء وإظهار الشريط فقط */
+        /* وضع Overlay للشريط فقط في برنامج البث */
         body.overlay-mode { 
             background-color: transparent !important; 
             padding: 0 !important; 
@@ -51,7 +51,7 @@
 
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(50%); } }
 
-        /* عناصر لوحة التحكم */
+        /* عناصر التحكم */
         .url-box { display: flex; gap: 10px; margin-bottom: 10px; }
         .actions-box { display: flex; gap: 10px; margin-top: 15px; }
         
@@ -77,12 +77,12 @@
 
 <div class="container" id="dashContainer">
     <div class="card">
-        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - لوحة التحكم الشاملة</h2>
+        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - لوحة التحكم الشاملة والمزامنة المباشرة</h2>
         <div class="url-box">
             <input type="text" id="finalUrl" readonly value="جاري إنشاء الرابط...">
-            <button class="btn-yellow" onclick="copyUrl()">📋 نسخ رابط الشريط</button>
+            <button class="btn-yellow" onclick="copyUrl()">📋 نسخ رابط الشريط لـ OBS</button>
         </div>
-        <p style="color:#888; font-size:12px;">الرابط المنسوخ سيعرض **الشريط المتحرك فقط** بشكل كامل ونظيف في TikTok LIVE Studio.</p>
+        <p style="color:#888; font-size:12px;">أضف هذا الرابط مرة واحدة فقط في OBS / TikTok LIVE Studio. بعدها، أي تعديل تحفظه هنا سيتحدث في البث فوراً بدون إعادة النسخ!</p>
     </div>
 
     <div class="card">
@@ -101,7 +101,7 @@
                 <input type="color" id="cNum" value="#facc15" oninput="updateAll()">
             </div>
             <div class="control-item">
-                <label>🖼️️ لون الإطار:</label>
+                <label>🖼 لون الإطار:</label>
                 <input type="color" id="cBorder" value="#333333" oninput="updateAll()">
             </div>
             <div class="control-item">
@@ -110,7 +110,7 @@
             </div>
             
             <div class="control-item" style="grid-column: 1 / -1;">
-                <label>✏️️ شكل خط الأسماء:</label>
+                <label>✏ شكل خط الأسماء:</label>
                 <select id="fontStyle" onchange="updateAll()">
                     <option value="'Segoe UI', Tahoma, sans-serif">حديث / افتراضي</option>
                     <option value="'Arial Black', Impact, sans-serif">عريض بارز (Bold)</option>
@@ -132,17 +132,19 @@
         <div class="slots-grid" id="slots"></div>
         
         <div class="actions-box">
-            <button class="btn-green" onclick="saveData()">💾 حفظ التغييرات ونسخ الرابط تلقائياً</button>
+            <button class="btn-green" onclick="saveData()">⚡ 💾 حفظ وتحديث الشريط في OBS فوراً</button>
         </div>
     </div>
 </div>
 
 <script>
+    // إنشاء قناة البث المباشر المزامنة بين المتصفح و OBS
+    const syncChannel = new BroadcastChannel('luffy_live_ticker_channel');
+
     const urlParams = new URLSearchParams(window.location.search);
     const isOverlay = urlParams.get('mode') === 'overlay';
 
     if (isOverlay) {
-        // إخفاء لوحة التحكم بالكامل وإظهار الشريط فقط
         document.body.classList.add('overlay-mode');
         document.getElementById('dashContainer').style.display = 'none';
         
@@ -152,41 +154,56 @@
         box.innerHTML = '<div class="marquee-track" id="trackOverlay"></div>';
         document.body.appendChild(box);
         
-        const speed = urlParams.get('sp') || 2;
-        const cName = urlParams.get('cn') || '#ffffff';
-        const cNum = urlParams.get('cm') || '#facc15';
-        const cBorder = urlParams.get('cb') || '#333333';
-        const cBgBox = urlParams.get('cbg') || '#000000';
-        const fontStyle = urlParams.get('ft') || "'Segoe UI', Tahoma, sans-serif";
+        // تحميل البيانات الأولى من الرابط أو من الذاكرة المحلية
+        loadAndApplyDataFromParams();
+
+        // الاستماع للتحديثات المباشرة القادمة من لوحة التحكم فور الضغط على حفظ
+        syncChannel.onmessage = (event) => {
+            if (event.data && event.data.type === 'UPDATE_TICKER') {
+                const data = event.data.payload;
+                applyStyles(data.cn, data.cm, data.cb, data.cbg, data.ft);
+                applySpeed(data.sp);
+                render(data.names, data.amounts, data.currencies, 'trackOverlay');
+            }
+        };
+    } else {
+        init();
+    }
+
+    function loadAndApplyDataFromParams() {
+        const speed = urlParams.get('sp') || localStorage.getItem('luffy_speed_v5') || 2;
+        const cName = urlParams.get('cn') || localStorage.getItem('luffy_cn5') || '#ffffff';
+        const cNum = urlParams.get('cm') || localStorage.getItem('luffy_cm5') || '#facc15';
+        const cBorder = urlParams.get('cb') || localStorage.getItem('luffy_cb5') || '#333333';
+        const cBgBox = urlParams.get('cbg') || localStorage.getItem('luffy_cbg5') || '#000000';
+        const fontStyle = urlParams.get('ft') || localStorage.getItem('luffy_ft5') || "'Segoe UI', Tahoma, sans-serif";
 
         applyStyles(cName, cNum, cBorder, cBgBox, fontStyle);
         applySpeed(speed);
 
         let names = [], amounts = [], currencies = [];
         try {
-            names = JSON.parse(urlParams.get('n') || "[]");
-            amounts = JSON.parse(urlParams.get('a') || "[]");
-            currencies = JSON.parse(urlParams.get('c') || "[]");
+            names = JSON.parse(urlParams.get('n')) || JSON.parse(localStorage.getItem('luffy_names_v5')) || [];
+            amounts = JSON.parse(urlParams.get('a')) || JSON.parse(localStorage.getItem('luffy_amounts_v5')) || [];
+            currencies = JSON.parse(urlParams.get('c')) || JSON.parse(localStorage.getItem('luffy_currencies_v5')) || [];
         } catch(e) { console.error(e); }
 
         render(names, amounts, currencies, 'trackOverlay');
-    } else {
-        init();
     }
 
     function init() {
         const slots = document.getElementById('slots');
         
-        const savedNames = JSON.parse(localStorage.getItem('luffy_names_v4')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
-        const savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_v4')) || ["50000", "100", "25000"];
-        const savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_v4')) || ["IQD", "USD", "IQD"];
-        const savedSpeed = localStorage.getItem('luffy_speed_v4') || 2;
+        const savedNames = JSON.parse(localStorage.getItem('luffy_names_v5')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
+        const savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_v5')) || ["50000", "100", "25000"];
+        const savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_v5')) || ["IQD", "USD", "IQD"];
+        const savedSpeed = localStorage.getItem('luffy_speed_v5') || 2;
         
-        document.getElementById('cName').value = localStorage.getItem('luffy_cn4') || '#ffffff';
-        document.getElementById('cNum').value = localStorage.getItem('luffy_cm4') || '#facc15';
-        document.getElementById('cBorder').value = localStorage.getItem('luffy_cb4') || '#333333';
-        document.getElementById('cBgBox').value = localStorage.getItem('luffy_cbg4') || '#000000';
-        document.getElementById('fontStyle').value = localStorage.getItem('luffy_ft4') || "'Segoe UI', Tahoma, sans-serif";
+        document.getElementById('cName').value = localStorage.getItem('luffy_cn5') || '#ffffff';
+        document.getElementById('cNum').value = localStorage.getItem('luffy_cm5') || '#facc15';
+        document.getElementById('cBorder').value = localStorage.getItem('luffy_cb5') || '#333333';
+        document.getElementById('cBgBox').value = localStorage.getItem('luffy_cbg5') || '#000000';
+        document.getElementById('fontStyle').value = localStorage.getItem('luffy_ft5') || "'Segoe UI', Tahoma, sans-serif";
         document.getElementById('speedRange').value = savedSpeed;
 
         for (let i = 0; i < 10; i++) {
@@ -243,26 +260,12 @@
 
         render(names, amounts, currencies, 'track');
 
-        const p = new URLSearchParams();
-        p.set('mode', 'overlay');
-        p.set('sp', val);
-        p.set('cn', cn);
-        p.set('cm', cm);
-        p.set('cb', cb);
-        p.set('cbg', cbg);
-        p.set('ft', ft);
-        p.set('n', JSON.stringify(names));
-        p.set('a', JSON.stringify(amounts));
-        p.set('c', JSON.stringify(currencies));
-        p.set('v', Date.now());
-
+        // إنشاء الرابط النظيف لـ OBS
         const baseUrl = window.location.href.split('?')[0];
-        document.getElementById('finalUrl').value = baseUrl + '?' + p.toString();
+        document.getElementById('finalUrl').value = `${baseUrl}?mode=overlay`;
     }
 
     function saveData() {
-        updateAll();
-
         const val = document.getElementById('speedRange').value;
         const cn = document.getElementById('cName').value;
         const cm = document.getElementById('cNum').value;
@@ -273,17 +276,24 @@
         const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
         const currencies = Array.from(document.querySelectorAll('.s-currency')).map(i => i.value);
 
-        localStorage.setItem('luffy_names_v4', JSON.stringify(names));
-        localStorage.setItem('luffy_amounts_v4', JSON.stringify(amounts));
-        localStorage.setItem('luffy_currencies_v4', JSON.stringify(currencies));
-        localStorage.setItem('luffy_speed_v4', val);
-        localStorage.setItem('luffy_cn4', cn);
-        localStorage.setItem('luffy_cm4', cm);
-        localStorage.setItem('luffy_cb4', cb);
-        localStorage.setItem('luffy_cbg4', cbg);
-        localStorage.setItem('luffy_ft4', ft);
+        // 1. الحفظ في الذاكرة المحلية
+        localStorage.setItem('luffy_names_v5', JSON.stringify(names));
+        localStorage.setItem('luffy_amounts_v5', JSON.stringify(amounts));
+        localStorage.setItem('luffy_currencies_v5', JSON.stringify(currencies));
+        localStorage.setItem('luffy_speed_v5', val);
+        localStorage.setItem('luffy_cn5', cn);
+        localStorage.setItem('luffy_cm5', cm);
+        localStorage.setItem('luffy_cb5', cb);
+        localStorage.setItem('luffy_cbg5', cbg);
+        localStorage.setItem('luffy_ft5', ft);
 
-        copyUrl();
+        // 2. إرسال أمر المزامنة الحية المباشرة لـ OBS فوراً
+        syncChannel.postMessage({
+            type: 'UPDATE_TICKER',
+            payload: { names, amounts, currencies, sp: val, cn, cm, cb, cbg, ft }
+        });
+
+        alert('⚡ تم حفظ التغييرات وتحديث الشريط في برنامج OBS / LIVE Studio بنجاح وبشكل مباشر!');
     }
 
     function render(names, amounts, currencies, id) {
@@ -310,7 +320,7 @@
         const urlInput = document.getElementById('finalUrl');
         urlInput.select();
         navigator.clipboard.writeText(urlInput.value);
-        alert('✅ تم نسخ رابط الشريط فقط بنجاح!\n\nضع هذا الرابط في TikTok LIVE Studio وسيظهر الشريط المتحرك وحدَه صافياً بدون أي أزرار أو لوحة تحكم.');
+        alert('📋 تم نسخ رابط OBS النظيف!\n\nضع هذا الرابط مرة واحدة فقط في OBS / TikTok LIVE Studio.');
     }
 </script>
 </body>
