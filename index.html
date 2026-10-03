@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LUFFY - Ticker Auto Sync Engine</title>
+    <title>LUFFY - Ticker Overlay Simple Engine</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
@@ -74,12 +74,12 @@
 
 <div class="container" id="dashContainer">
     <div class="card">
-        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - لوحة التحكم المباشرة</h2>
+        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - رابط الشريط المباشر لـ OBS</h2>
         <div class="url-box">
             <input type="text" id="finalUrl" readonly value="جاري إنشاء الرابط...">
             <button class="btn-yellow" onclick="copyUrl()">📋 نسخ رابط OBS</button>
         </div>
-        <p style="color:#aaa; font-size:12px;">انسخ هذا الرابط وضعه في OBS مرة واحدة فقط.</p>
+        <p style="color:#aaa; font-size:12px;">عدّل الخانات بالأسفل، واضغط "حفظ وتحديث" لنسخ الرابط المحدث تلقائياً.</p>
     </div>
 
     <div class="card">
@@ -129,7 +129,7 @@
         <div class="slots-grid" id="slots"></div>
         
         <div class="actions-box">
-            <button class="btn-green" onclick="saveData()">⚡ 💾 حفظ التعديلات لـ OBS</button>
+            <button class="btn-green" onclick="saveData()">⚡ 💾 حفظ وتحديث رابط OBS</button>
         </div>
     </div>
 </div>
@@ -148,40 +148,43 @@
         box.innerHTML = '<div class="marquee-track" id="trackOverlay"></div>';
         document.body.appendChild(box);
         
-        // قراءة الملف الخارجي ومزامنته بانتظام مع OBS
-        fetchConfig();
-        setInterval(fetchConfig, 1000);
+        // قراءة البيانات المضمنة في الرابط مباشر
+        readUrlData();
+        window.addEventListener('hashchange', readUrlData);
+        window.addEventListener('storage', readLocalStorageData);
+        readLocalStorageData();
     } else {
         init();
     }
 
-    function fetchConfig() {
-        fetch('luffy_config.json?t=' + Date.now())
-            .then(res => res.json())
-            .then(d => {
-                applyStyles(d.cn, d.cm, d.cb, d.cbg, d.ft);
-                applySpeed(d.sp);
-                render(d.names, d.amounts, d.currencies, 'trackOverlay');
-            })
-            .catch(err => {
-                // استرجاع احتياطي من الذاكرة
-                loadFromLocalStorage();
-            });
+    function readUrlData() {
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            try {
+                const decoded = JSON.parse(decodeURIComponent(hash));
+                applyStyles(decoded.cn, decoded.cm, decoded.cb, decoded.cbg, decoded.ft);
+                applySpeed(decoded.sp);
+                render(decoded.names, decoded.amounts, decoded.currencies, 'trackOverlay');
+            } catch(e){}
+        }
     }
 
-    function loadFromLocalStorage() {
-        const speed = localStorage.getItem('luffy_sp10') || 2;
-        const cName = localStorage.getItem('luffy_cn10') || '#ffffff';
-        const cNum = localStorage.getItem('luffy_cm10') || '#facc15';
-        const cBorder = localStorage.getItem('luffy_cb10') || '#333333';
-        const cBgBox = localStorage.getItem('luffy_cbg10') || '#000000';
-        const fontStyle = localStorage.getItem('luffy_ft10') || "'Segoe UI', Tahoma, sans-serif";
+    function readLocalStorageData() {
+        const hash = window.location.hash.substring(1);
+        if (hash) return; // Prioritize hash
+
+        const speed = localStorage.getItem('luffy_sp_v1') || 2;
+        const cName = localStorage.getItem('luffy_cn_v1') || '#ffffff';
+        const cNum = localStorage.getItem('luffy_cm_v1') || '#facc15';
+        const cBorder = localStorage.getItem('luffy_cb_v1') || '#333333';
+        const cBgBox = localStorage.getItem('luffy_cbg_v1') || '#000000';
+        const fontStyle = localStorage.getItem('luffy_ft_v1') || "'Segoe UI', Tahoma, sans-serif";
 
         let names = [], amounts = [], currencies = [];
         try {
-            names = JSON.parse(localStorage.getItem('luffy_names_v10')) || [];
-            amounts = JSON.parse(localStorage.getItem('luffy_amounts_v10')) || [];
-            currencies = JSON.parse(localStorage.getItem('luffy_currencies_v10')) || [];
+            names = JSON.parse(localStorage.getItem('luffy_names_v1')) || [];
+            amounts = JSON.parse(localStorage.getItem('luffy_amounts_v1')) || [];
+            currencies = JSON.parse(localStorage.getItem('luffy_currencies_v1')) || [];
         } catch(e){}
 
         applyStyles(cName, cNum, cBorder, cBgBox, fontStyle);
@@ -192,16 +195,16 @@
     function init() {
         const slots = document.getElementById('slots');
         
-        let savedNames = JSON.parse(localStorage.getItem('luffy_names_v10')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
-        let savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_v10')) || ["50000", "100", "25000"];
-        let savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_v10')) || ["IQD", "USD", "IQD"];
+        let savedNames = JSON.parse(localStorage.getItem('luffy_names_v1')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
+        let savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_v1')) || ["50000", "100", "25000"];
+        let savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_v1')) || ["IQD", "USD", "IQD"];
 
-        document.getElementById('cName').value = localStorage.getItem('luffy_cn10') || '#ffffff';
-        document.getElementById('cNum').value = localStorage.getItem('luffy_cm10') || '#facc15';
-        document.getElementById('cBorder').value = localStorage.getItem('luffy_cb10') || '#333333';
-        document.getElementById('cBgBox').value = localStorage.getItem('luffy_cbg10') || '#000000';
-        document.getElementById('fontStyle').value = localStorage.getItem('luffy_ft10') || "'Segoe UI', Tahoma, sans-serif";
-        document.getElementById('speedRange').value = localStorage.getItem('luffy_sp10') || 2;
+        document.getElementById('cName').value = localStorage.getItem('luffy_cn_v1') || '#ffffff';
+        document.getElementById('cNum').value = localStorage.getItem('luffy_cm_v1') || '#facc15';
+        document.getElementById('cBorder').value = localStorage.getItem('luffy_cb_v1') || '#333333';
+        document.getElementById('cBgBox').value = localStorage.getItem('luffy_cbg_v1') || '#000000';
+        document.getElementById('fontStyle').value = localStorage.getItem('luffy_ft_v1') || "'Segoe UI', Tahoma, sans-serif";
+        document.getElementById('speedRange').value = localStorage.getItem('luffy_sp_v1') || 2;
 
         slots.innerHTML = '';
         for (let i = 0; i < 10; i++) {
@@ -219,9 +222,6 @@
             `;
         }
 
-        const baseUrl = window.location.href.split('?')[0];
-        document.getElementById('finalUrl').value = `${baseUrl}?mode=overlay`;
-        
         updateAll();
     }
 
@@ -261,6 +261,12 @@
         const currencies = Array.from(document.querySelectorAll('.s-currency')).map(i => i.value);
 
         render(names, amounts, currencies, 'track');
+
+        // تحديث الرابط في الخانة العلوية
+        const baseUrl = window.location.href.split('?')[0].split('#')[0];
+        const dataObj = { names, amounts, currencies, sp: val, cn, cm, cb, cbg, ft };
+        const encodedData = encodeURIComponent(JSON.stringify(dataObj));
+        document.getElementById('finalUrl').value = `${baseUrl}?mode=overlay#${encodedData}`;
     }
 
     function saveData() {
@@ -275,27 +281,19 @@
         const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
         const currencies = Array.from(document.querySelectorAll('.s-currency')).map(i => i.value);
 
-        localStorage.setItem('luffy_names_v10', JSON.stringify(names));
-        localStorage.setItem('luffy_amounts_v10', JSON.stringify(amounts));
-        localStorage.setItem('luffy_currencies_v10', JSON.stringify(currencies));
-        localStorage.setItem('luffy_sp10', val);
-        localStorage.setItem('luffy_cn10', cn);
-        localStorage.setItem('luffy_cm10', cm);
-        localStorage.setItem('luffy_cb10', cb);
-        localStorage.setItem('luffy_cbg10', cbg);
-        localStorage.setItem('luffy_ft10', ft);
+        localStorage.setItem('luffy_names_v1', JSON.stringify(names));
+        localStorage.setItem('luffy_amounts_v1', JSON.stringify(amounts));
+        localStorage.setItem('luffy_currencies_v1', JSON.stringify(currencies));
+        localStorage.setItem('luffy_sp_v1', val);
+        localStorage.setItem('luffy_cn_v1', cn);
+        localStorage.setItem('luffy_cm_v1', cm);
+        localStorage.setItem('luffy_cb_v1', cb);
+        localStorage.setItem('luffy_cbg_v1', cbg);
+        localStorage.setItem('luffy_ft_v1', ft);
 
-        // إنشاء وتنزيل ملف التهيأة لضمان القراءة المباشرة
-        const configData = { names, amounts, currencies, sp: val, cn, cm, cb, cbg, ft };
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(configData, null, 2));
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", "luffy_config.json");
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-
-        alert('✅ تم حفظ البيانات وتنزيل ملف luffy_config.json!\n\nضع الملف في نفس مجلد مشروعك وسيعمل الشريط في OBS فوراً.');
+        updateAll();
+        copyUrl();
+        alert('✅ تم حفظ البيانات ونُسخ الرابط الجديد تلقائياً!\n\nضع الرابط المنسوخ في OBS ليظهر التحديث فوراً.');
     }
 
     function render(names, amounts, currencies, id) {
@@ -322,7 +320,6 @@
         const urlInput = document.getElementById('finalUrl');
         urlInput.select();
         navigator.clipboard.writeText(urlInput.value);
-        alert('📋 تم نسخ الرابط!');
     }
 </script>
 </body>
