@@ -77,12 +77,12 @@
 
 <div class="container" id="dashContainer">
     <div class="card">
-        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - لوحة التحكم الشاملة والمزامنة المباشرة</h2>
+        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - لوحة التحكم الشاملة</h2>
         <div class="url-box">
             <input type="text" id="finalUrl" readonly value="جاري إنشاء الرابط...">
-            <button class="btn-yellow" onclick="copyUrl()">📋 نسخ رابط الشريط لـ OBS</button>
+            <button class="btn-yellow" onclick="copyUrl()">📋 نسخ رابط OBS</button>
         </div>
-        <p style="color:#888; font-size:12px;">أضف هذا الرابط مرة واحدة فقط في OBS / TikTok LIVE Studio. بعدها، أي تعديل تحفظه هنا سيتحدث في البث فوراً بدون إعادة النسخ!</p>
+        <p style="color:#888; font-size:12px;">أضف هذا الرابط مرة واحدة في برنامج البث. عند حفظ التعديلات هنا تتحدث مباشرة هناك.</p>
     </div>
 
     <div class="card">
@@ -138,9 +138,7 @@
 </div>
 
 <script>
-    // إنشاء قناة البث المباشر المزامنة بين المتصفح و OBS
     const syncChannel = new BroadcastChannel('luffy_live_ticker_channel');
-
     const urlParams = new URLSearchParams(window.location.search);
     const isOverlay = urlParams.get('mode') === 'overlay';
 
@@ -154,38 +152,36 @@
         box.innerHTML = '<div class="marquee-track" id="trackOverlay"></div>';
         document.body.appendChild(box);
         
-        // تحميل البيانات الأولى من الرابط أو من الذاكرة المحلية
-        loadAndApplyDataFromParams();
+        loadAndApplyData();
 
-        // الاستماع للتحديثات المباشرة القادمة من لوحة التحكم فور الضغط على حفظ
         syncChannel.onmessage = (event) => {
             if (event.data && event.data.type === 'UPDATE_TICKER') {
-                const data = event.data.payload;
-                applyStyles(data.cn, data.cm, data.cb, data.cbg, data.ft);
-                applySpeed(data.sp);
-                render(data.names, data.amounts, data.currencies, 'trackOverlay');
+                const d = event.data.payload;
+                applyStyles(d.cn, d.cm, d.cb, d.cbg, d.ft);
+                applySpeed(d.sp);
+                render(d.names, d.amounts, d.currencies, 'trackOverlay');
             }
         };
     } else {
         init();
     }
 
-    function loadAndApplyDataFromParams() {
-        const speed = urlParams.get('sp') || localStorage.getItem('luffy_speed_v5') || 2;
-        const cName = urlParams.get('cn') || localStorage.getItem('luffy_cn5') || '#ffffff';
-        const cNum = urlParams.get('cm') || localStorage.getItem('luffy_cm5') || '#facc15';
-        const cBorder = urlParams.get('cb') || localStorage.getItem('luffy_cb5') || '#333333';
-        const cBgBox = urlParams.get('cbg') || localStorage.getItem('luffy_cbg5') || '#000000';
-        const fontStyle = urlParams.get('ft') || localStorage.getItem('luffy_ft5') || "'Segoe UI', Tahoma, sans-serif";
+    function loadAndApplyData() {
+        const speed = localStorage.getItem('luffy_speed_v6') || 2;
+        const cName = localStorage.getItem('luffy_cn6') || '#ffffff';
+        const cNum = localStorage.getItem('luffy_cm6') || '#facc15';
+        const cBorder = localStorage.getItem('luffy_cb6') || '#333333';
+        const cBgBox = localStorage.getItem('luffy_cbg6') || '#000000';
+        const fontStyle = localStorage.getItem('luffy_ft6') || "'Segoe UI', Tahoma, sans-serif";
 
         applyStyles(cName, cNum, cBorder, cBgBox, fontStyle);
         applySpeed(speed);
 
         let names = [], amounts = [], currencies = [];
         try {
-            names = JSON.parse(urlParams.get('n')) || JSON.parse(localStorage.getItem('luffy_names_v5')) || [];
-            amounts = JSON.parse(urlParams.get('a')) || JSON.parse(localStorage.getItem('luffy_amounts_v5')) || [];
-            currencies = JSON.parse(urlParams.get('c')) || JSON.parse(localStorage.getItem('luffy_currencies_v5')) || [];
+            names = JSON.parse(localStorage.getItem('luffy_names_v6')) || [];
+            amounts = JSON.parse(localStorage.getItem('luffy_amounts_v6')) || [];
+            currencies = JSON.parse(localStorage.getItem('luffy_currencies_v6')) || [];
         } catch(e) { console.error(e); }
 
         render(names, amounts, currencies, 'trackOverlay');
@@ -194,25 +190,34 @@
     function init() {
         const slots = document.getElementById('slots');
         
-        const savedNames = JSON.parse(localStorage.getItem('luffy_names_v5')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
-        const savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_v5')) || ["50000", "100", "25000"];
-        const savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_v5')) || ["IQD", "USD", "IQD"];
-        const savedSpeed = localStorage.getItem('luffy_speed_v5') || 2;
+        let savedNames = [], savedAmounts = [], savedCurrencies = [];
+        try {
+            savedNames = JSON.parse(localStorage.getItem('luffy_names_v6')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
+            savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_v6')) || ["50000", "100", "25000"];
+            savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_v6')) || ["IQD", "USD", "IQD"];
+        } catch(e) {
+            savedNames = ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
+            savedAmounts = ["50000", "100", "25000"];
+            savedCurrencies = ["IQD", "USD", "IQD"];
+        }
+
+        const savedSpeed = localStorage.getItem('luffy_speed_v6') || 2;
         
-        document.getElementById('cName').value = localStorage.getItem('luffy_cn5') || '#ffffff';
-        document.getElementById('cNum').value = localStorage.getItem('luffy_cm5') || '#facc15';
-        document.getElementById('cBorder').value = localStorage.getItem('luffy_cb5') || '#333333';
-        document.getElementById('cBgBox').value = localStorage.getItem('luffy_cbg5') || '#000000';
-        document.getElementById('fontStyle').value = localStorage.getItem('luffy_ft5') || "'Segoe UI', Tahoma, sans-serif";
+        document.getElementById('cName').value = localStorage.getItem('luffy_cn6') || '#ffffff';
+        document.getElementById('cNum').value = localStorage.getItem('luffy_cm6') || '#facc15';
+        document.getElementById('cBorder').value = localStorage.getItem('luffy_cb6') || '#333333';
+        document.getElementById('cBgBox').value = localStorage.getItem('luffy_cbg6') || '#000000';
+        document.getElementById('fontStyle').value = localStorage.getItem('luffy_ft6') || "'Segoe UI', Tahoma, sans-serif";
         document.getElementById('speedRange').value = savedSpeed;
 
+        slots.innerHTML = '';
         for (let i = 0; i < 10; i++) {
             const curr = savedCurrencies[i] || 'IQD';
             slots.innerHTML += `
                 <div class="slot-row">
                     <div style="color:#888; text-align:center; line-height:35px;">#${i+1}</div>
-                    <input type="text" placeholder="الاسم" class="s-name" value="${savedNames[i] || ''}" oninput="updateAll()">
-                    <input type="number" placeholder="المبلغ" class="s-amount" value="${savedAmounts[i] || ''}" oninput="updateAll()">
+                    <input type="text" placeholder="الاسم" class="s-name" value="${savedNames[i] || ''}" onkeyup="updateAll()" onchange="updateAll()">
+                    <input type="number" placeholder="المبلغ" class="s-amount" value="${savedAmounts[i] || ''}" onkeyup="updateAll()" onchange="updateAll()">
                     <select class="s-currency" onchange="updateAll()">
                         <option value="IQD" ${curr === 'IQD' ? 'selected' : ''}>د.ع</option>
                         <option value="USD" ${curr === 'USD' ? 'selected' : ''}>$ دولار</option>
@@ -260,7 +265,6 @@
 
         render(names, amounts, currencies, 'track');
 
-        // إنشاء الرابط النظيف لـ OBS
         const baseUrl = window.location.href.split('?')[0];
         document.getElementById('finalUrl').value = `${baseUrl}?mode=overlay`;
     }
@@ -272,36 +276,35 @@
         const cb = document.getElementById('cBorder').value;
         const cbg = document.getElementById('cBgBox').value;
         const ft = document.getElementById('fontStyle').value;
+        
         const names = Array.from(document.querySelectorAll('.s-name')).map(i => i.value.trim());
         const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
         const currencies = Array.from(document.querySelectorAll('.s-currency')).map(i => i.value);
 
-        // 1. الحفظ في الذاكرة المحلية
-        localStorage.setItem('luffy_names_v5', JSON.stringify(names));
-        localStorage.setItem('luffy_amounts_v5', JSON.stringify(amounts));
-        localStorage.setItem('luffy_currencies_v5', JSON.stringify(currencies));
-        localStorage.setItem('luffy_speed_v5', val);
-        localStorage.setItem('luffy_cn5', cn);
-        localStorage.setItem('luffy_cm5', cm);
-        localStorage.setItem('luffy_cb5', cb);
-        localStorage.setItem('luffy_cbg5', cbg);
-        localStorage.setItem('luffy_ft5', ft);
+        localStorage.setItem('luffy_names_v6', JSON.stringify(names));
+        localStorage.setItem('luffy_amounts_v6', JSON.stringify(amounts));
+        localStorage.setItem('luffy_currencies_v6', JSON.stringify(currencies));
+        localStorage.setItem('luffy_speed_v6', val);
+        localStorage.setItem('luffy_cn6', cn);
+        localStorage.setItem('luffy_cm6', cm);
+        localStorage.setItem('luffy_cb6', cb);
+        localStorage.setItem('luffy_cbg6', cbg);
+        localStorage.setItem('luffy_ft6', ft);
 
-        // 2. إرسال أمر المزامنة الحية المباشرة لـ OBS فوراً
         syncChannel.postMessage({
             type: 'UPDATE_TICKER',
             payload: { names, amounts, currencies, sp: val, cn, cm, cb, cbg, ft }
         });
 
-        alert('⚡ تم حفظ التغييرات وتحديث الشريط في برنامج OBS / LIVE Studio بنجاح وبشكل مباشر!');
+        alert('⚡ تم حفظ التغييرات وتحديث الأسماء والمبالغ بنجاح!');
     }
 
     function render(names, amounts, currencies, id) {
         let items = [];
         for (let i = 0; i < 10; i++) {
-            if (names[i]) {
+            if (names[i] && names[i] !== '') {
                 let amtFormatted = '';
-                if (amounts[i]) {
+                if (amounts[i] && amounts[i] !== '') {
                     const curr = currencies[i] || 'IQD';
                     const numEng = Number(amounts[i]).toLocaleString('en-US');
                     amtFormatted = curr === 'USD' ? `$${numEng}` : `${numEng} د.ع`;
@@ -320,7 +323,7 @@
         const urlInput = document.getElementById('finalUrl');
         urlInput.select();
         navigator.clipboard.writeText(urlInput.value);
-        alert('📋 تم نسخ رابط OBS النظيف!\n\nضع هذا الرابط مرة واحدة فقط في OBS / TikTok LIVE Studio.');
+        alert('📋 تم نسخ رابط الشريط!\n\nضعه في OBS / LIVE Studio مرة واحدة وسيعمل تلقائياً.');
     }
 </script>
 </body>
