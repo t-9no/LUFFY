@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>LUFFY - Ticker Overlay Direct Link Sync</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -74,12 +77,12 @@
 
 <div class="container" id="dashContainer">
     <div class="card">
-        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - رابط الشريط النهائي لـ OBS</h2>
+        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - رابط الشريط المباشر</h2>
         <div class="url-box">
             <input type="text" id="finalUrl" readonly value="جاري إنشاء الرابط...">
-            <button class="btn-yellow" onclick="copyUrl()">📋 نسخ الرابط المُحدث</button>
+            <button class="btn-yellow" onclick="copyUrl()">📋 نسخ الرابط</button>
         </div>
-        <p style="color:#aaa; font-size:12px;">ملاحظة: اضغط على <b>"تحديث الرابط وحفظ"</b> بعد أي تعديل، ثم انسخ الرابط واستبدله في OBS لضمان ظهور التعديلات فوراً.</p>
+        <p style="color:#aaa; font-size:12px;">ملاحظة: عند الحفظ يتم توليد رابط فريد يمنع OBS من حفظ البيانات القديمة.</p>
     </div>
 
     <div class="card">
@@ -129,7 +132,7 @@
         <div class="slots-grid" id="slots"></div>
         
         <div class="actions-box">
-            <button class="btn-green" onclick="saveData()">⚡ 💾 تحديث الرابط وحفظ التغييرات</button>
+            <button class="btn-green" onclick="saveData()">⚡ 💾 حفظ وتحديث الرابط لـ OBS</button>
         </div>
     </div>
 </div>
@@ -148,7 +151,6 @@
         box.innerHTML = '<div class="marquee-track" id="trackOverlay"></div>';
         document.body.appendChild(box);
         
-        // قراءة البيانات المضمنة مباشرة داخل الرابط
         loadFromURLParams();
     } else {
         init();
@@ -178,16 +180,16 @@
     function init() {
         const slots = document.getElementById('slots');
         
-        let savedNames = JSON.parse(localStorage.getItem('luffy_names_v7')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
-        let savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_v7')) || ["50000", "100", "25000"];
-        let savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_v7')) || ["IQD", "USD", "IQD"];
+        let savedNames = JSON.parse(localStorage.getItem('luffy_names_v8')) || ["علي الكرخي", "حسين العراقي", "محمد البصراوي"];
+        let savedAmounts = JSON.parse(localStorage.getItem('luffy_amounts_v8')) || ["50000", "100", "25000"];
+        let savedCurrencies = JSON.parse(localStorage.getItem('luffy_currencies_v8')) || ["IQD", "USD", "IQD"];
 
-        document.getElementById('cName').value = localStorage.getItem('luffy_cn7') || '#ffffff';
-        document.getElementById('cNum').value = localStorage.getItem('luffy_cm7') || '#facc15';
-        document.getElementById('cBorder').value = localStorage.getItem('luffy_cb7') || '#333333';
-        document.getElementById('cBgBox').value = localStorage.getItem('luffy_cbg7') || '#000000';
-        document.getElementById('fontStyle').value = localStorage.getItem('luffy_ft7') || "'Segoe UI', Tahoma, sans-serif";
-        document.getElementById('speedRange').value = localStorage.getItem('luffy_speed_v7') || 2;
+        document.getElementById('cName').value = localStorage.getItem('luffy_cn8') || '#ffffff';
+        document.getElementById('cNum').value = localStorage.getItem('luffy_cm8') || '#facc15';
+        document.getElementById('cBorder').value = localStorage.getItem('luffy_cb8') || '#333333';
+        document.getElementById('cBgBox').value = localStorage.getItem('luffy_cbg8') || '#000000';
+        document.getElementById('fontStyle').value = localStorage.getItem('luffy_ft8') || "'Segoe UI', Tahoma, sans-serif";
+        document.getElementById('speedRange').value = localStorage.getItem('luffy_speed_v8') || 2;
 
         slots.innerHTML = '';
         for (let i = 0; i < 10; i++) {
@@ -260,6 +262,7 @@
         params.set('n', encodeURIComponent(JSON.stringify(names)));
         params.set('a', encodeURIComponent(JSON.stringify(amounts)));
         params.set('c', encodeURIComponent(JSON.stringify(currencies)));
+        params.set('v', Date.now().toString()); // إضافة timestamp كعنصر عشوائي لكسر الـ Cache في OBS
 
         document.getElementById('finalUrl').value = `${baseUrl}?${params.toString()}`;
     }
@@ -276,19 +279,19 @@
         const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
         const currencies = Array.from(document.querySelectorAll('.s-currency')).map(i => i.value);
 
-        localStorage.setItem('luffy_names_v7', JSON.stringify(names));
-        localStorage.setItem('luffy_amounts_v7', JSON.stringify(amounts));
-        localStorage.setItem('luffy_currencies_v7', JSON.stringify(currencies));
-        localStorage.setItem('luffy_speed_v7', val);
-        localStorage.setItem('luffy_cn7', cn);
-        localStorage.setItem('luffy_cm7', cm);
-        localStorage.setItem('luffy_cb7', cb);
-        localStorage.setItem('luffy_cbg7', cbg);
-        localStorage.setItem('luffy_ft7', ft);
+        localStorage.setItem('luffy_names_v8', JSON.stringify(names));
+        localStorage.setItem('luffy_amounts_v8', JSON.stringify(amounts));
+        localStorage.setItem('luffy_currencies_v8', JSON.stringify(currencies));
+        localStorage.setItem('luffy_speed_v8', val);
+        localStorage.setItem('luffy_cn8', cn);
+        localStorage.setItem('luffy_cm8', cm);
+        localStorage.setItem('luffy_cb8', cb);
+        localStorage.setItem('luffy_cbg8', cbg);
+        localStorage.setItem('luffy_ft8', ft);
 
         generateOBSUrl(names, amounts, currencies, val, cn, cm, cb, cbg, ft);
 
-        alert('✅ تم حفظ البيانات وتحديث الرابط بنجاح!\n\nقم بنسخ الرابط الجديد من الأعلى وضعه في OBS لتظهر الأسماء والمبالغ فوراً.');
+        alert('✅ تم إنشاء رابط جديد ببياناتك الجديدة!\n\nانسخ الرابط واستبدله في OBS وسيظهر التغيير مباشرة.');
     }
 
     function render(names, amounts, currencies, id) {
@@ -315,7 +318,7 @@
         const urlInput = document.getElementById('finalUrl');
         urlInput.select();
         navigator.clipboard.writeText(urlInput.value);
-        alert('📋 تم نسخ الرابط المحدث بنجاح!\n\nافتح خواص Browser Source في OBS واستبدل الرابط السابق به.');
+        alert('📋 تم نسخ الرابط المحدث!\n\nضع الرابط في OBS ثم اضغط Refresh cache.');
     }
 </script>
 </body>
