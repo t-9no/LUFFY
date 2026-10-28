@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LUFFY - Ticker Overlay Simple Engine</title>
+    <title>LUFFY - Ticker Control Center</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
@@ -68,18 +68,30 @@
         .btn-yellow:hover { background: #eab308; }
         .btn-green { background: #22c55e; color: #000; border: none; border-radius: 6px; padding: 12px 20px; font-weight: bold; cursor: pointer; flex: 1; text-align: center; font-size: 15px; }
         .btn-green:hover { background: #16a34a; }
+        .btn-red { background: #ef4444; color: #fff; border: none; border-radius: 6px; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+        .btn-red:hover { background: #dc2626; }
+        .btn-gray { background: #4b5563; color: #fff; border: none; border-radius: 6px; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+
+        .killed-screen { width: 100vw; height: 100vh; background: #000; color: #ef4444; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="container" id="dashContainer">
+    <div class="card" style="border-color: #ef4444;">
+        <h2 style="color:#ef4444; margin-bottom:10px;">⚠️ لوحة التحكم - مفتاح الطوارئ (الإيقاف التام)</h2>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="killSwitchBtn" class="btn-red" onclick="toggleKillSwitch()">🔴 البرنامج يعمل (اضغط للإيقاف التام للجميع)</button>
+        </div>
+        <p style="color:#aaa; font-size:12px; margin-top: 8px;">عند تفعيل الإيقاف، سيتوقف الشريط فوراً عند أي شخص يستخدم الرابط.</p>
+    </div>
+
     <div class="card">
         <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - رابط الشريط المباشر لـ OBS</h2>
         <div class="url-box">
             <input type="text" id="finalUrl" readonly value="جاري إنشاء الرابط...">
             <button class="btn-yellow" onclick="copyUrl()">📋 نسخ رابط OBS</button>
         </div>
-        <p style="color:#aaa; font-size:12px;">عدّل الخانات بالأسفل، واضغط "حفظ وتحديث" لنسخ الرابط المحدث تلقائياً.</p>
     </div>
 
     <div class="card">
@@ -142,37 +154,40 @@
         document.body.classList.add('overlay-mode');
         document.getElementById('dashContainer').style.display = 'none';
         
-        const box = document.createElement('div');
-        box.className = 'marquee-box';
-        box.id = 'previewBoxOverlay';
-        box.innerHTML = '<div class="marquee-track" id="trackOverlay"></div>';
-        document.body.appendChild(box);
-        
-        // قراءة البيانات المضمنة في الرابط مباشر
-        readUrlData();
-        window.addEventListener('hashchange', readUrlData);
-        window.addEventListener('storage', readLocalStorageData);
-        readLocalStorageData();
+        // التحقق مستمراً من حالة الإيقاف الطارئ
+        checkKillSwitchStatus();
+        setInterval(checkKillSwitchStatus, 1000);
     } else {
         init();
+        updateKillSwitchButtonUI();
     }
 
-    function readUrlData() {
+    function checkKillSwitchStatus() {
+        const isKilled = localStorage.getItem('luffy_killed') === 'true';
+        if (isKilled) {
+            document.body.innerHTML = '<div class="killed-screen">⛔ البرنامج متوقف حالياً من قبل المالك.</div>';
+            return;
+        }
+
+        // قراءة البيانات المضمنة في الـ Hash
         const hash = window.location.hash.substring(1);
         if (hash) {
             try {
                 const decoded = JSON.parse(decodeURIComponent(hash));
+                if (decoded.killed) {
+                    document.body.innerHTML = '<div class="killed-screen">⛔ البرنامج متوقف حالياً من قبل المالك.</div>';
+                    return;
+                }
                 applyStyles(decoded.cn, decoded.cm, decoded.cb, decoded.cbg, decoded.ft);
                 applySpeed(decoded.sp);
                 render(decoded.names, decoded.amounts, decoded.currencies, 'trackOverlay');
             } catch(e){}
+        } else {
+            readLocalStorageData();
         }
     }
 
     function readLocalStorageData() {
-        const hash = window.location.hash.substring(1);
-        if (hash) return; // Prioritize hash
-
         const speed = localStorage.getItem('luffy_sp_v1') || 2;
         const cName = localStorage.getItem('luffy_cn_v1') || '#ffffff';
         const cNum = localStorage.getItem('luffy_cm_v1') || '#facc15';
@@ -187,9 +202,46 @@
             currencies = JSON.parse(localStorage.getItem('luffy_currencies_v1')) || [];
         } catch(e){}
 
+        if (!document.getElementById('previewBoxOverlay')) {
+            const box = document.createElement('div');
+            box.className = 'marquee-box';
+            box.id = 'previewBoxOverlay';
+            box.innerHTML = '<div class="marquee-track" id="trackOverlay"></div>';
+            document.body.appendChild(box);
+        }
+
         applyStyles(cName, cNum, cBorder, cBgBox, fontStyle);
         applySpeed(speed);
         render(names, amounts, currencies, 'trackOverlay');
+    }
+
+    function toggleKillSwitch() {
+        const current = localStorage.getItem('luffy_killed') === 'true';
+        const newState = !current;
+        localStorage.setItem('luffy_killed', newState ? 'true' : 'false');
+        
+        updateKillSwitchButtonUI();
+        updateAll();
+        
+        if(newState) {
+            alert('🔴 تم إيقاف البرنامج تماماً! أي شخص يفتح الرابط الآن ستظهر له شاشة توقف.');
+        } else {
+            alert('🟢 تم إعادة تفعيل البرنامج بنجاح.');
+        }
+    }
+
+    function updateKillSwitchButtonUI() {
+        const isKilled = localStorage.getItem('luffy_killed') === 'true';
+        const btn = document.getElementById('killSwitchBtn');
+        if(btn) {
+            if(isKilled) {
+                btn.className = 'btn-gray';
+                btn.innerText = '🟢 البرنامج متوقف (اضغط لإعادة تشغيله)';
+            } else {
+                btn.className = 'btn-red';
+                btn.innerText = '🔴 البرنامج يعمل (اضغط للإيقاف التام للجميع)';
+            }
+        }
     }
 
     function init() {
@@ -252,6 +304,7 @@
         const cb = document.getElementById('cBorder').value;
         const cbg = document.getElementById('cBgBox').value;
         const ft = document.getElementById('fontStyle').value;
+        const killed = localStorage.getItem('luffy_killed') === 'true';
 
         applySpeed(val);
         applyStyles(cn, cm, cb, cbg, ft);
@@ -262,9 +315,8 @@
 
         render(names, amounts, currencies, 'track');
 
-        // تحديث الرابط في الخانة العلوية
         const baseUrl = window.location.href.split('?')[0].split('#')[0];
-        const dataObj = { names, amounts, currencies, sp: val, cn, cm, cb, cbg, ft };
+        const dataObj = { names, amounts, currencies, sp: val, cn, cm, cb, cbg, ft, killed };
         const encodedData = encodeURIComponent(JSON.stringify(dataObj));
         document.getElementById('finalUrl').value = `${baseUrl}?mode=overlay#${encodedData}`;
     }
@@ -276,6 +328,7 @@
         const cb = document.getElementById('cBorder').value;
         const cbg = document.getElementById('cBgBox').value;
         const ft = document.getElementById('fontStyle').value;
+        const killed = localStorage.getItem('luffy_killed') === 'true';
         
         const names = Array.from(document.querySelectorAll('.s-name')).map(i => i.value.trim());
         const amounts = Array.from(document.querySelectorAll('.s-amount')).map(i => i.value.trim());
@@ -293,7 +346,7 @@
 
         updateAll();
         copyUrl();
-        alert('✅ تم حفظ البيانات ونُسخ الرابط الجديد تلقائياً!\n\nضع الرابط المنسوخ في OBS ليظهر التحديث فوراً.');
+        alert('✅ تم الحفظ وتحديث رابط OBS!');
     }
 
     function render(names, amounts, currencies, id) {
