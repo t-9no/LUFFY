@@ -3,103 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LUFFY - Ticker Control Center</title>
+    <title>LUFFY - Offline</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body { background-color: #0b0b0d; color: #fff; font-family: var(--font-family, 'Segoe UI', Tahoma, sans-serif); padding: 20px; display: flex; justify-content: center; }
-        
-        body.overlay-mode { 
-            background-color: transparent !important; 
-            padding: 0 !important; 
-            margin: 0 !important; 
-            overflow: hidden !important; 
-        }
-
-        .container { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 15px; }
-        .card { background: #141418; border: 1px solid #282832; border-radius: 12px; padding: 15px; }
-        .title { color: #facc15; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
-
-        .marquee-box { 
-            background: var(--bg-box-color, #000000); 
-            border: 2px solid var(--border-color, #333333); 
-            border-radius: 8px; 
-            height: 60px; 
-            overflow: hidden; 
-            position: relative; 
-            display: flex; 
-            align-items: center; 
-            width: 100%; 
-            transition: all 0.3s;
-        }
-        
-        body.overlay-mode .marquee-box { 
-            border-radius: 0; 
-            height: 100vh; 
-            width: 100vw;
-            border: none;
-        }
-        
-        .marquee-track { display: flex; white-space: nowrap; position: absolute; will-change: transform; animation: marquee var(--speed, 30s) linear infinite; }
-        
-        .marquee-item { font-size: 24px; font-weight: bold; display: flex; align-items: center; font-family: var(--font-family, 'Segoe UI', Tahoma, sans-serif); }
-        .marquee-item .name { color: var(--name-color, #ffffff); }
-        .marquee-item .amount { color: var(--num-color, #facc15); margin-right: 8px; direction: ltr; display: inline-block; }
-        .marquee-item .sep { margin: 0 20px; color: var(--border-color, #facc15); }
-
-        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(50%); } }
-
-        .url-box { display: flex; gap: 10px; margin-bottom: 10px; }
-        .actions-box { display: flex; gap: 10px; margin-top: 15px; }
-        
-        .control-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: #0d0d10; padding: 12px 15px; border-radius: 8px; border: 1px solid #222; margin-top: 10px; }
-        .control-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; color: #ccc; }
-        input[type="color"] { border: none; width: 32px; height: 32px; border-radius: 5px; cursor: pointer; background: transparent; }
-
-        .speed-control { display: flex; align-items: center; gap: 15px; grid-column: 1 / -1; }
-        .speed-control input[type="range"] { accent-color: #facc15; cursor: pointer; flex: 1; }
-
-        .slots-grid { display: flex; flex-direction: column; gap: 8px; }
-        .slot-row { display: grid; grid-template-columns: 35px 1fr 1fr 90px; gap: 8px; background: #0d0d10; padding: 6px 10px; border-radius: 6px; border: 1px solid #222; }
-        input[type="text"], input[type="number"], select { background: #16161c; border: 1px solid #2a2a36; border-radius: 6px; padding: 8px; color: #fff; outline: none; width: 100%; font-size: 14px; }
-        input:focus, select:focus { border-color: #facc15; }
-
-        .btn-yellow { background: #facc15; color: #000; border: none; border-radius: 6px; padding: 10px 20px; font-weight: bold; cursor: pointer; white-space: nowrap; }
-        .btn-yellow:hover { background: #eab308; }
-        .btn-green { background: #22c55e; color: #000; border: none; border-radius: 6px; padding: 12px 20px; font-weight: bold; cursor: pointer; flex: 1; text-align: center; font-size: 15px; }
-        .btn-green:hover { background: #16a34a; }
-        
-        .killed-screen { width: 100vw; height: 100vh; background: #000; color: #ef4444; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; text-align: center; }
+        body { background: transparent !important; overflow: hidden; width: 100vw; height: 100vh; }
     </style>
 </head>
 <body>
-
-<div class="container" id="dashContainer">
-    <div class="card" style="border-color: #ef4444;">
-        <h2 style="color:#ef4444; margin-bottom:10px;">⚠️ حالة النظام: معطل حالياً للجميع</h2>
-    </div>
-
-    <div class="card">
-        <h2 style="color:#facc15; margin-bottom:10px;">LUFFY - رابط الشريط المباشر لـ OBS</h2>
-        <div class="url-box">
-            <input type="text" id="finalUrl" readonly value="البرنامج متوقف حالياً...">
-        </div>
-    </div>
-</div>
-
-<script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const isOverlay = urlParams.get('mode') === 'overlay';
-
-    if (isOverlay) {
-        document.body.classList.add('overlay-mode');
-        document.getElementById('dashContainer').style.display = 'none';
-        // إيقاف البرنامج وعرض شاشة التوقف فوراً لكل من يفتح الرابط
-        document.body.innerHTML = '<div class="killed-screen">⛔ البرنامج متوقف حالياً من قبل المالك.</div>';
-    } else {
-        // لوحة التحكم أيضاً ستظهر رسالة التوقف
-        document.body.innerHTML = '<div class="killed-screen" style="flex-direction: column; gap: 20px;">⛔ لوحة التحكم والبرنامج معطلان حالياً.<br><span style="font-size: 16px; color: #aaa;">تم تعطيل الخدمة عن الجميع بنجاح.</span></div>';
-    }
-</script>
+    <script>
+        // إيقاف أي محتوى أو حركة فوراً وجعل الشاشة فارغة تماماً عند أي شخص
+        document.body.innerHTML = '';
+    </script>
 </body>
 </html>
